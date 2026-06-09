@@ -1,0 +1,17 @@
+{
+  "name": "cursor-daily-routines",
+  "version": "1.0.0",
+  "description": "Cursor Plugin for daily briefing, debriefing, and skill-progress tracking.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-canvas.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/srmlcn/cursor-daily-routines.git"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "esbuild": "^0.28.0"
+  }
+}

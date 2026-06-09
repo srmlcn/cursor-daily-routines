@@ -168,7 +168,7 @@ Write tight, actionable bullets — not generic advice. Reference specific file 
 
 ## Step 6 — Populate the template and write the canvas
 
-1. Read `template.canvas.tsx` from the same directory as this SKILL.md file (i.e. `skills/daily-briefing/template.canvas.tsx` within the plugin root)
+1. Read `dist/briefing.template.canvas.tsx` from the plugin root (the pre-built, self-contained version with all components inlined — no relative imports)
 2. Replace the `/* ══ FILL DAILY ══ */` data section at the top with real data:
    - `DATE_LABEL`, `START_NOTE`, `PERSON_NAME` (from config `name`), `COMPANY` (from config `company`)
    - `TIMEZONE_LABEL` → `"{timezone} ({company_timezone} +{timezone_offset_hours}h)"` e.g. `"EST (PST +3h)"`
