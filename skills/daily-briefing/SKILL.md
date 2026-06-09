@@ -197,3 +197,30 @@ Write tight, actionable bullets — not generic advice. Reference specific file 
 - [ ] At least one `ramp` block at start and end
 - [ ] Ticket/skill balance is roughly 50/50 (by minute count)
 - [ ] No hardcoded hex colors — all colors use `theme.category.*` or `theme.text.*`
+
+---
+
+## Step 7 — Write the daily log entry
+
+After writing the canvas, append a JSON log file to `logs_dir` from config.
+
+**File path:** `{logs_dir}/YYYY-MM-DD-briefing.json`  
+(Use today's date. Create the directory if it does not exist.)
+
+**Schema:**
+
+```json
+{
+  "date": "YYYY-MM-DD",
+  "start_time": "HH:MM",
+  "end_time": "HH:MM",
+  "block_count": <number of BLOCKS>,
+  "ticket_ids": ["<id>", ...],
+  "email_thread_count": <number of EMAIL_THREADS>,
+  "track_a_focus": "<skill name used as sublabel for track A block, or null>",
+  "track_b_focus": "<skill name used as sublabel for track B block, or null>",
+  "canvas_path": "<absolute path of the written canvas file>"
+}
+```
+
+If a log file for today already exists at that path, overwrite it.

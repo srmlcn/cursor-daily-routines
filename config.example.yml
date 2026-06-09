@@ -58,3 +58,9 @@ skill_goal_days: 65
 #   skill-tracker.canvas.tsx    (skill progress — updated by daily-debrief)
 #   day-briefing.canvas.tsx     (today's schedule — written by daily-briefing)
 canvases_dir: "~/.cursor/projects/my-workspace/canvases"
+
+# ── Daily routine logs ────────────────────────────────────────────────────────
+# Long-term store for daily routine log entries. Separate from canvases_dir so
+# canvas processes never interact with it. The directory is created on first use.
+# Files written: YYYY-MM-DD-briefing.json  /  YYYY-MM-DD-debrief.json
+logs_dir: "~/.cursor/daily-routines/logs"

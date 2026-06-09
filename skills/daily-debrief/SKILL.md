@@ -106,7 +106,33 @@ Never touch anything below `═══ Static visual layer`.
 
 ---
 
-## Step 8 — Recommend tomorrow's focus
+## Step 8 — Write the daily log entry
+
+After updating the skill tracker, append a JSON log file to `logs_dir` from config.
+
+**File path:** `{logs_dir}/YYYY-MM-DD-debrief.json`  
+(Use today's date. Create the directory if it does not exist.)
+
+**Schema:**
+
+```json
+{
+  "date": "YYYY-MM-DD",
+  "days_elapsed": <new DAYS_ELAPSED value>,
+  "skills_updated": [
+    { "id": "<skill id>", "track": "a" | "b", "evidence_type": "learning" | "gitlab", "desc": "<desc>" }
+  ],
+  "newly_mastered": ["<skill id>", ...],
+  "track_a_recommended": "<skill id>",
+  "track_b_recommended": "<skill id>"
+}
+```
+
+If a log file for today already exists at that path, overwrite it.
+
+---
+
+## Step 9 — Recommend tomorrow's focus
 
 After updating the file, respond with:
 
