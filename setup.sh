@@ -10,11 +10,6 @@ git -C "$REPO" add -A
 git -C "$REPO" commit -m "Initial commit — generic daily briefing and debriefing skills"
 
 echo ""
-echo "→ Building canvas templates (requires Node.js)..."
-cd "$REPO" && npm install && npm run build
-echo "✓ Canvas templates built in dist/"
-
-echo ""
 echo "✓ Done! Next steps:"
 echo "  1. cp $REPO/config.example.yml ~/.cursor/skills/config.yml"
 echo "     Edit it with your name, timezone, MCP servers, and canvases_dir."
