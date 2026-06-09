@@ -1,0 +1,60 @@
+# ─── cursor-daily-routines · personal config ────────────────────────────────
+# Copy this file to ~/.cursor/skills/config.yml and fill in your details.
+# Both the daily-briefing and daily-debrief skills read this file first.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Identity ──────────────────────────────────────────────────────────────────
+name: "Spencer Cain"
+company: "yourcompany.com"
+
+# ── Timezone ──────────────────────────────────────────────────────────────────
+# Your local timezone and your company's primary timezone.
+# Displayed in the canvas subtitle as: "{timezone} ({company_timezone} +{offset}h)"
+timezone: "EST"
+company_timezone: "PST"
+timezone_offset_hours: 3   # how many hours ahead your TZ is vs the company TZ
+
+# ── Schedule defaults ─────────────────────────────────────────────────────────
+# Default workday start time in 24h format (your local timezone).
+# The briefing skill will always confirm or override this before building the schedule.
+default_start_time: "10:30"
+work_hours: 8
+lunch_duration_mins: 30
+
+# ── MCP integrations ──────────────────────────────────────────────────────────
+# The exact MCP server names as configured in your ~/.cursor/mcp.json.
+# Set to null to skip that integration (the skill will skip those steps).
+email_mcp_server: "user-zimbra"     # Email server; replace with your provider's MCP name
+gitlab_mcp_server: "user-gitlab"    # GitLab MCP server name
+
+# ── Skill tracks ──────────────────────────────────────────────────────────────
+# Two skill tracks you are actively leveling up.
+# The skills use these to name schedule blocks, swimlane labels, and canvas sections.
+# After copying the template canvases, do a one-time find-replace:
+#   "Ruby on Rails" → your track_a.name
+#   "Vue 3"         → your track_b.name
+#   "Ruby Dev"      → your track_a.lane_label
+#   "Vue Dev"       → your track_b.lane_label
+track_a:
+  name: "Ruby on Rails"   # Full name shown in canvas section headers
+  short: "Ruby"           # Short name used in schedule block labels
+  lane_label: "Ruby Dev"  # Swimlane label in the day timeline
+
+track_b:
+  name: "Vue 3"
+  short: "Vue"
+  lane_label: "Vue Dev"
+
+# ── Skill goal ────────────────────────────────────────────────────────────────
+# The date range and working-day count for your learning goal.
+# Used in the skill-tracker and day-briefing canvases.
+skill_goal_start: "Jun 8, 2026"
+skill_goal_end: "Sep 8, 2026"
+skill_goal_days: 65
+
+# ── Workspace ─────────────────────────────────────────────────────────────────
+# Absolute path to the canvases folder inside your Cursor workspace.
+# The skills read/write:
+#   skill-tracker.canvas.tsx    (skill progress — updated by daily-debrief)
+#   day-briefing.canvas.tsx     (today's schedule — written by daily-briefing)
+canvases_dir: "~/.cursor/projects/my-workspace/canvases"
