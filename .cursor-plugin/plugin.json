@@ -1,0 +1,8 @@
+{
+  "name": "cursor-daily-routines",
+  "description": "Morning briefing canvas and skill mastery tracker for daily developer routines. Generates a swimlane day schedule from your inbox, GitLab tickets, and skill progression.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Spencer Cain"
+  }
+}
