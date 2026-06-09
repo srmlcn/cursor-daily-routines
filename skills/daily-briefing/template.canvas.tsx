@@ -6,15 +6,15 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { Divider, Text, useCanvasState } from "cursor/canvas";
-import type { EmailThread, Ticket, Block, BlockDetail, TrackedSkill, UpdateEntry, CatKey } from "../src/types";
-import { sk, toMins } from "../src/helpers";
+import type { EmailThread, Ticket, Block, BlockDetail, TrackedSkill, UpdateEntry, CatKey } from "../../src/types";
+import { sk, toMins } from "../../src/helpers";
 import {
   DayHeader,
   InboxSection,
   GitLabSection,
   TimelineSection,
   SkillProgressionSection,
-} from "../src/components/sections";
+} from "../../src/components/sections";
 
 // ══ FILL DAILY — start ═══════════════════════════════════════════════════════
 
