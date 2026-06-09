@@ -1,6 +1,6 @@
 # cursor-daily-routines
 
-A shareable set of [Cursor Agent Skills](https://docs.cursor.com/agent/skills) for building a structured daily briefing and debriefing routine with skill-progress tracking.
+A [Cursor Plugin](https://cursor.com/docs/plugins) for building a structured daily briefing and debriefing routine with skill-progress tracking.
 
 ---
 
@@ -8,10 +8,11 @@ A shareable set of [Cursor Agent Skills](https://docs.cursor.com/agent/skills) f
 
 | File | Purpose |
 |------|---------|
+| `.cursor-plugin/plugin.json` | Plugin manifest — name, description, version |
 | `config.example.yml` | Personal settings — copy to `~/.cursor/skills/config.yml` and fill in |
-| `daily-briefing/SKILL.md` | Morning skill: fetches emails + GitLab tickets, builds an 8-hour swimlane schedule |
-| `daily-briefing/template.canvas.tsx` | Canvas template used each morning |
-| `daily-debrief/SKILL.md` | EOD skill: processes your day synopsis and updates skill-mastery progress |
+| `skills/daily-briefing/SKILL.md` | Morning skill: fetches emails + GitLab tickets, builds an 8-hour swimlane schedule |
+| `skills/daily-briefing/template.canvas.tsx` | Canvas template used each morning |
+| `skills/daily-debrief/SKILL.md` | EOD skill: processes your day synopsis and updates skill-mastery progress |
 | `canvases/skill-tracker.template.canvas.tsx` | Skill tracker canvas starting template |
 
 ---
@@ -43,14 +44,17 @@ Evening
 
 ## Setup
 
-### 1. Install the skills
+### 1. Install the plugin locally
 
-Copy the two skill folders into your Cursor skills directory:
+Symlink this repository into Cursor's local plugin directory so Cursor discovers it automatically:
 
 ```bash
-cp -r daily-briefing  ~/.cursor/skills/
-cp -r daily-debrief   ~/.cursor/skills/
+ln -s /path/to/cursor-daily-routines ~/.cursor/plugins/local/cursor-daily-routines
 ```
+
+Then reload Cursor (**Developer: Reload Window**). The `daily-briefing` and `daily-debrief` skills will be available in every chat session.
+
+> For teams on a Teams or Enterprise plan, submit the repository as a team marketplace plugin instead of using a local symlink.
 
 ### 2. Configure your personal settings
 
@@ -89,7 +93,7 @@ The default skill tables use **Ruby on Rails** (Track A) and **Vue 3** (Track B)
 
 If you're learning different technologies:
 
-**Option A — Full replacement**: Edit `skill-tracker.canvas.tsx` and replace the `TRACK_A` and `TRACK_B` arrays with your own skills. Update the `Skill ID Reference` table in `daily-debrief/SKILL.md` to match.
+**Option A — Full replacement**: Edit `skill-tracker.canvas.tsx` and replace the `TRACK_A` and `TRACK_B` arrays with your own skills. Update the `Skill ID Reference` table in `skills/daily-debrief/SKILL.md` to match.
 
 **Option B — Quick rename**: If you just want to rename the tracks without changing the skill list, update `config.yml`:
 
@@ -107,6 +111,8 @@ track_b:
 Then update `TRACK_A_NAME`, `TRACK_B_NAME`, and `PERSON_NAME` at the top of `skill-tracker.canvas.tsx`.
 
 ### 5. Set up MCP integrations (optional)
+
+> **Note:** MCP servers are configured separately in `~/.cursor/mcp.json`, not inside the plugin.
 
 The briefing skill can fetch your emails and GitLab tickets automatically if you have MCP servers configured.
 
@@ -176,7 +182,7 @@ const TRACK_A: TrackedSkill[] = [
 ];
 ```
 
-Then update the `Skill ID Reference` table in `daily-debrief/SKILL.md` with matching IDs and trigger keywords.
+Then update the `Skill ID Reference` table in `skills/daily-debrief/SKILL.md` with matching IDs and trigger keywords.
 
 ---
 
@@ -184,13 +190,22 @@ Then update the `Skill ID Reference` table in `daily-debrief/SKILL.md` with matc
 
 ```
 ~/.cursor/
+  plugins/
+    local/
+      cursor-daily-routines/           ← symlink to this repo
+        .cursor-plugin/
+          plugin.json
+        skills/
+          daily-briefing/
+            SKILL.md
+            template.canvas.tsx
+          daily-debrief/
+            SKILL.md
+        canvases/
+          skill-tracker.template.canvas.tsx
+        src/                           ← shared types, helpers, and components
   skills/
-    config.yml                         ← your personal settings
-    daily-briefing/
-      SKILL.md
-      template.canvas.tsx
-    daily-debrief/
-      SKILL.md
+    config.yml                         ← your personal settings (not in plugin)
 
 ~/your-workspace/
   canvases/
