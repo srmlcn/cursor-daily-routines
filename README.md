@@ -76,23 +76,34 @@ Open `~/.cursor/skills/config.yml` and fill in:
 - Your MCP server names (Zimbra, GitLab — or `null` to skip)
 - Your two skill tracks (see below)
 - Your `canvases_dir` path (default: `~/.cursor/daily-routines/canvases`)
+- Your `workspace_canvases_dir` path (default: `~/.cursor/projects/empty-window/canvases`)
 
-### 3. Set up your canvas store
+### 3. Set up your canvas directories
 
-Create the long-term canvas store under `~/.cursor` (not inside a Cursor workspace):
+Canvas files are stored in **two** places:
+
+| Config key | Purpose | Example |
+|------------|---------|---------|
+| `canvases_dir` | Long-term archive under `~/.cursor` | `~/.cursor/daily-routines/canvases` |
+| `workspace_canvases_dir` | Live Canvas panel (workspace-bound) | `~/.cursor/projects/empty-window/canvases` |
+
+Find your workspace slug: `ls ~/.cursor/projects/`
 
 ```bash
+# Archive (dated briefings + canonical skill tracker)
 mkdir -p ~/.cursor/daily-routines/canvases
-```
 
-Copy the pre-built skill tracker template into it:
+# Live panel (Cursor only renders canvases from this folder)
+mkdir -p ~/.cursor/projects/empty-window/canvases
 
-```bash
+# Seed the skill tracker in the archive, then copy to the workspace
 cp dist/skill-tracker.template.canvas.tsx \
    ~/.cursor/daily-routines/canvases/skill-tracker.canvas.tsx
+cp ~/.cursor/daily-routines/canvases/skill-tracker.canvas.tsx \
+   ~/.cursor/projects/empty-window/canvases/skill-tracker.canvas.tsx
 ```
 
-`canvases_dir` in `config.yml` should point to this folder (the example config uses this path by default).
+Set both paths in `config.yml`. The briefing skill writes a dated file to the archive and copies today's briefing to `today-daily-routine.canvas.tsx` in the workspace folder — **that** is the path to open in the Canvas panel.
 
 ### 4. Customize your skill tracks
 
@@ -158,7 +169,7 @@ Say any of:
 - "daily briefing"
 - "morning plan"
 
-The skill confirms your start time, fetches context, and writes a dated canvas to `canvases_dir` (e.g. `9-June-2026-daily-routine.canvas.tsx`). Open it in Cursor Canvas.
+The skill confirms your start time, fetches context, archives a dated canvas, and writes `today-daily-routine.canvas.tsx` to `workspace_canvases_dir`. Open that workspace copy in Cursor Canvas.
 
 ### End-of-day debrief
 
@@ -214,12 +225,17 @@ Then update the `Skill ID Reference` table in `skills/daily-debrief/SKILL.md` wi
   skills/
     config.yml                         ← your personal settings (not in plugin)
   daily-routines/
-    canvases/
-      skill-tracker.canvas.tsx         ← your live skill progress
-      9-June-2026-daily-routine.canvas.tsx  ← generated each morning
+    canvases/                          ← archive (canvases_dir)
+      skill-tracker.canvas.tsx         ← canonical skill progress
+      9-June-2026-daily-routine.canvas.tsx  ← dated briefing archive
     logs/
       YYYY-MM-DD-briefing.json         ← daily briefing log entries
       YYYY-MM-DD-debrief.json          ← daily debrief log entries
+
+~/.cursor/projects/empty-window/
+  canvases/                            ← live panel (workspace_canvases_dir)
+    skill-tracker.canvas.tsx           ← synced copy for Canvas panel
+    today-daily-routine.canvas.tsx     ← today's briefing (overwritten each morning)
 ```
 
 ---

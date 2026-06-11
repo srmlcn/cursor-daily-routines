@@ -52,14 +52,19 @@ skill_goal_start: "Jun 8, 2026"
 skill_goal_end: "Sep 8, 2026"
 skill_goal_days: 65
 
-# ── Canvas store ──────────────────────────────────────────────────────────────
-# Long-term store for daily routine canvas files. Lives under ~/.cursor, not
-# inside ~/.cursor/projects/.../canvases, so workspace canvas processes never
-# interact with it. The directory is created on first use.
+# ── Canvas archive ────────────────────────────────────────────────────────────
+# Long-term store under ~/.cursor (not a Cursor workspace folder). Created on
+# first use. Skills write here first; dated briefings are kept permanently.
 # Files:
-#   skill-tracker.canvas.tsx                          (live skill progress — updated by daily-debrief)
-#   <day>-<month>-<year>-daily-routine.canvas.tsx     (today's schedule — written by daily-briefing)
+#   skill-tracker.canvas.tsx                          (canonical skill progress)
+#   <day>-<month>-<year>-daily-routine.canvas.tsx     (dated daily briefings)
 canvases_dir: "~/.cursor/daily-routines/canvases"
+
+# ── Workspace canvases (live panel) ───────────────────────────────────────────
+# Cursor only renders the Canvas panel for files in this exact folder while the
+# matching workspace is open. Skills copy canvases here after writing the archive.
+# Replace <workspace> with your project slug (run: ls ~/.cursor/projects/).
+workspace_canvases_dir: "~/.cursor/projects/empty-window/canvases"
 
 # ── Daily routine logs ────────────────────────────────────────────────────────
 # Long-term store for daily routine log entries. Separate from canvases_dir so
