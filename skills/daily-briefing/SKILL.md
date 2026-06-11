@@ -4,12 +4,12 @@ description: >-
   Generate a daily day-briefing canvas by fetching unread emails and open
   GitLab tickets, then building an 8-hour swimlane schedule. Use when asked
   for a daily briefing, morning plan, day schedule, or "start my day".
-  Output goes to the canvases/ folder configured in ~/.cursor/skills/config.yml.
+  Output goes to canvases_dir in ~/.cursor/skills/config.yml (not a Cursor workspace canvases folder).
 ---
 
 # Daily Briefing Canvas
 
-Generates `day-briefing.canvas.tsx` in your configured canvases folder.
+Generates `<day>-<month>-<year>-daily-routine.canvas.tsx` in your configured `canvases_dir` (e.g. `9-June-2026-daily-routine.canvas.tsx`).
 
 ---
 
@@ -31,7 +31,7 @@ Extract and use throughout:
 - `track_a`               → skill track A config (name, short, lane_label)
 - `track_b`               → skill track B config (name, short, lane_label)
 - `skill_goal_start/end/days` → skill goal dates
-- `canvases_dir`          → absolute path to the workspace canvases folder
+- `canvases_dir`          → absolute path to the long-term canvas store (e.g. `~/.cursor/daily-routines/canvases`)
 
 ---
 
@@ -183,7 +183,12 @@ Write tight, actionable bullets — not generic advice. Reference specific file 
    - `TRACK_B_LANE` → `track_b.lane_label` from config
 3. **Sync skill data**: read `skill-tracker.canvas.tsx` and copy the current `TRACK_A[]`, `TRACK_B[]`, `SK_RECENT[]`, and `SK_DAYS_ELAPSED` values into the same-named constants in the template.
 4. Leave all visual components (`Swimlane`, `BlockDescription`, `BalanceStats`, `SkOverviewCard`, etc.) untouched.
-5. Write the result to `{canvases_dir}/day-briefing.canvas.tsx`.
+5. Build today's canvas filename: `<day>-<month>-<year>-daily-routine.canvas.tsx`
+   - Day number without a leading zero (e.g. `9`, not `09`)
+   - Full month name, not abbreviated (e.g. `June`, not `Jun`)
+   - Example: `9-June-2026-daily-routine.canvas.tsx`
+6. Create `canvases_dir` if it does not exist.
+7. Write the result to `{canvases_dir}/<day>-<month>-<year>-daily-routine.canvas.tsx`.
 
 ---
 
