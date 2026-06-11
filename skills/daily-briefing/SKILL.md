@@ -4,12 +4,13 @@ description: >-
   Generate a daily day-briefing canvas by fetching unread emails and open
   GitLab tickets, then building an 8-hour swimlane schedule. Use when asked
   for a daily briefing, morning plan, day schedule, or "start my day".
-  Output goes to canvases_dir in ~/.cursor/skills/config.yml (not a Cursor workspace canvases folder).
+  Writes a dated archive copy to canvases_dir and a live copy to workspace_canvases_dir
+  in ~/.cursor/skills/config.yml so the Canvas panel can render it.
 ---
 
 # Daily Briefing Canvas
 
-Generates `<day>-<month>-<year>-daily-routine.canvas.tsx` in your configured `canvases_dir` (e.g. `9-June-2026-daily-routine.canvas.tsx`).
+Generates today's briefing canvas in two places: a dated archive file in `canvases_dir` and a stable live file `today-daily-routine.canvas.tsx` in `workspace_canvases_dir` for the Canvas panel.
 
 ---
 
@@ -31,7 +32,8 @@ Extract and use throughout:
 - `track_a`               → skill track A config (name, short, lane_label)
 - `track_b`               → skill track B config (name, short, lane_label)
 - `skill_goal_start/end/days` → skill goal dates
-- `canvases_dir`          → absolute path to the long-term canvas store (e.g. `~/.cursor/daily-routines/canvases`)
+- `canvases_dir`          → long-term canvas archive (e.g. `~/.cursor/daily-routines/canvases`)
+- `workspace_canvases_dir` → live Canvas panel folder (e.g. `~/.cursor/projects/empty-window/canvases`)
 
 ---
 
@@ -187,8 +189,9 @@ Write tight, actionable bullets — not generic advice. Reference specific file 
    - Day number without a leading zero (e.g. `9`, not `09`)
    - Full month name, not abbreviated (e.g. `June`, not `Jun`)
    - Example: `9-June-2026-daily-routine.canvas.tsx`
-6. Create `canvases_dir` if it does not exist.
-7. Write the result to `{canvases_dir}/<day>-<month>-<year>-daily-routine.canvas.tsx`.
+6. Create `canvases_dir` and `workspace_canvases_dir` if they do not exist.
+7. Write the archive copy to `{canvases_dir}/<day>-<month>-<year>-daily-routine.canvas.tsx`.
+8. Write the live copy to `{workspace_canvases_dir}/today-daily-routine.canvas.tsx` (same file contents; stable name so the Canvas panel and chat links stay consistent).
 
 ---
 
@@ -205,7 +208,17 @@ Write tight, actionable bullets — not generic advice. Reference specific file 
 
 ---
 
-## Step 7 — Write the daily log entry
+## Step 7 — Introduce the canvas to the user
+
+When telling the user the briefing is ready, **link only the workspace copy**:
+
+`[{workspace_canvases_dir}/today-daily-routine.canvas.tsx]({workspace_canvases_dir}/today-daily-routine.canvas.tsx)`
+
+Never link the archive path when inviting the user to open the Canvas panel — files outside `workspace_canvases_dir` open as plain text, not as a live canvas.
+
+---
+
+## Step 8 — Write the daily log entry
 
 After writing the canvas, append a JSON log file to `logs_dir` from config.
 
@@ -224,7 +237,8 @@ After writing the canvas, append a JSON log file to `logs_dir` from config.
   "email_thread_count": <number of EMAIL_THREADS>,
   "track_a_focus": "<skill name used as sublabel for track A block, or null>",
   "track_b_focus": "<skill name used as sublabel for track B block, or null>",
-  "canvas_path": "<absolute path of the written canvas file>"
+  "canvas_path": "<absolute path of workspace_canvases_dir/today-daily-routine.canvas.tsx>",
+  "archive_path": "<absolute path of canvases_dir/<day>-<month>-<year>-daily-routine.canvas.tsx>"
 }
 ```
 
