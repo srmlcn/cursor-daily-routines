@@ -28,7 +28,8 @@ Extract:
 - `name`         → for responses
 - `track_a`      → skill track A (name, short)
 - `track_b`      → skill track B (name, short)
-- `canvases_dir` → path to the canvases folder
+- `canvases_dir`             → long-term canvas archive
+- `workspace_canvases_dir`   → live Canvas panel folder
 
 ---
 
@@ -100,13 +101,22 @@ Increment `DAYS_ELAPSED` by 1 in the canvas file.
 
 ## Step 7 — Write the updated file
 
-Use StrReplace to update the SKILL DATA section of `skill-tracker.canvas.tsx`.
+Use StrReplace to update the SKILL DATA section of `{canvases_dir}/skill-tracker.canvas.tsx`.
 Only modify the data section (between the two `═══ SKILL DATA` markers).
 Never touch anything below `═══ Static visual layer`.
 
 ---
 
-## Step 8 — Write the daily log entry
+## Step 8 — Sync to workspace canvases
+
+Copy `{canvases_dir}/skill-tracker.canvas.tsx` to `{workspace_canvases_dir}/skill-tracker.canvas.tsx`.
+Create `workspace_canvases_dir` if it does not exist.
+
+This copy is what Cursor renders in the Canvas panel. The archive at `canvases_dir` remains the canonical source.
+
+---
+
+## Step 9 — Write the daily log entry
 
 After updating the skill tracker, append a JSON log file to `logs_dir` from config.
 
@@ -132,7 +142,7 @@ If a log file for today already exists at that path, overwrite it.
 
 ---
 
-## Step 9 — Recommend tomorrow's focus
+## Step 10 — Recommend tomorrow's focus
 
 After updating the file, respond with:
 
