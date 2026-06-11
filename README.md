@@ -27,7 +27,7 @@ Morning
                        fetches unread emails (Zimbra / other)
                        fetches open GitLab tickets and MRs
                        builds 8-hour swimlane schedule
-                       writes day-briefing.canvas.tsx ──▶ open in Cursor Canvas
+                       writes <day>-<month>-<year>-daily-routine.canvas.tsx ──▶ open in Cursor Canvas
 
 Evening
   "end of day: ..." ──▶ daily-debrief skill
@@ -68,24 +68,24 @@ Open `~/.cursor/skills/config.yml` and fill in:
 - Your default start time
 - Your MCP server names (Zimbra, GitLab — or `null` to skip)
 - Your two skill tracks (see below)
-- Your workspace's `canvases_dir` path
+- Your `canvases_dir` path (default: `~/.cursor/daily-routines/canvases`)
 
-### 3. Set up your workspace canvases folder
+### 3. Set up your canvas store
 
-Create a `canvases/` folder inside your Cursor workspace (or use an existing one):
-
-```bash
-mkdir -p ~/path/to/your-workspace/canvases
-```
-
-Copy the skill tracker template into it:
+Create the long-term canvas store under `~/.cursor` (not inside a Cursor workspace):
 
 ```bash
-cp canvases/skill-tracker.template.canvas.tsx \
-   ~/path/to/your-workspace/canvases/skill-tracker.canvas.tsx
+mkdir -p ~/.cursor/daily-routines/canvases
 ```
 
-Update `canvases_dir` in your `config.yml` to point to this folder.
+Copy the pre-built skill tracker template into it:
+
+```bash
+cp dist/skill-tracker.template.canvas.tsx \
+   ~/.cursor/daily-routines/canvases/skill-tracker.canvas.tsx
+```
+
+`canvases_dir` in `config.yml` should point to this folder (the example config uses this path by default).
 
 ### 4. Customize your skill tracks
 
@@ -151,7 +151,7 @@ Say any of:
 - "daily briefing"
 - "morning plan"
 
-The skill confirms your start time, fetches context, and writes a new `day-briefing.canvas.tsx` to your canvases folder. Open it in Cursor Canvas.
+The skill confirms your start time, fetches context, and writes a dated canvas to `canvases_dir` (e.g. `9-June-2026-daily-routine.canvas.tsx`). Open it in Cursor Canvas.
 
 ### End-of-day debrief
 
@@ -206,11 +206,13 @@ Then update the `Skill ID Reference` table in `skills/daily-debrief/SKILL.md` wi
         src/                           ← shared types, helpers, and components
   skills/
     config.yml                         ← your personal settings (not in plugin)
-
-~/your-workspace/
-  canvases/
-    skill-tracker.canvas.tsx           ← your live skill progress
-    day-briefing.canvas.tsx            ← generated each morning
+  daily-routines/
+    canvases/
+      skill-tracker.canvas.tsx         ← your live skill progress
+      9-June-2026-daily-routine.canvas.tsx  ← generated each morning
+    logs/
+      YYYY-MM-DD-briefing.json         ← daily briefing log entries
+      YYYY-MM-DD-debrief.json          ← daily debrief log entries
 ```
 
 ---
