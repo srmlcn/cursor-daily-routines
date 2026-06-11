@@ -46,15 +46,22 @@ Evening
 
 ### 1. Install the plugin locally
 
-Symlink this repository into Cursor's local plugin directory so Cursor discovers it automatically:
+Clone or move this repository directly into Cursor's local plugin directory. Symlinks are not supported — the repo must live at this path:
 
 ```bash
-ln -s /path/to/cursor-daily-routines ~/.cursor/plugins/local/cursor-daily-routines
+git clone https://github.com/srmlcn/cursor-daily-routines.git \
+  ~/.cursor/plugins/local/cursor-daily-routines
 ```
 
-Then reload Cursor (**Developer: Reload Window**). The `daily-briefing` and `daily-debrief` skills will be available in every chat session.
+If you already cloned elsewhere, move the directory instead:
 
-> For teams on a Teams or Enterprise plan, submit the repository as a team marketplace plugin instead of using a local symlink.
+```bash
+mv /path/to/cursor-daily-routines ~/.cursor/plugins/local/cursor-daily-routines
+```
+
+Then reload Cursor (**Developer: Reload Window**). Cursor discovers skills from `skills/` inside the plugin — no need to copy them to `~/.cursor/skills/`.
+
+> For teams on a Teams or Enterprise plan, submit the repository as a team marketplace plugin instead of a local install.
 
 ### 2. Configure your personal settings
 
@@ -192,7 +199,7 @@ Then update the `Skill ID Reference` table in `skills/daily-debrief/SKILL.md` wi
 ~/.cursor/
   plugins/
     local/
-      cursor-daily-routines/           ← symlink to this repo
+      cursor-daily-routines/           ← cloned repo (not a symlink)
         .cursor-plugin/
           plugin.json
         skills/
