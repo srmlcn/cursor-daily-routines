@@ -240,6 +240,24 @@ Then update the `Skill ID Reference` table in `skills/daily-debrief/SKILL.md` wi
 
 ---
 
+## Customizing Daily Briefing Behavior
+
+To customize the behavior of the daily briefing skill, such as guiding Cursor on how often to fit breaks into the schedule or the typical hours you work, it's beneficial to store those instructions in a command. In Cursor, under Settings -> Rules, Skills, Subagents -> Commands -> + New, add instructions with the name `daily-briefing`:
+
+```
+Generate a daily briefing using the skill daily-briefing. Read the previous day's briefing in combination with all data read through external tools. Combine them into a canvas following the daily-briefing skill information. Unless there's a critical issue, don't stop working until the canvas is created and ready to be opened. When making the schedule, I don't like to cascade different activities several times throughout the day.
+```
+
+Then, in a new chat, you can use the `/daily-briefing` command.
+
+If you need to customize your daily briefing for just one day, include those instructions with the command in a new chat:
+
+```
+/daily-briefing I have a dentist appointment this afternoon from 2:30 to 4. Stack shorter tasks after the appointment and longer tasks before.
+```
+
+---
+
 ## Contributing
 
 Pull requests welcome. If you adapt the skill tables for a different tech stack, consider opening a PR to add your skill list as an example under `examples/`.
