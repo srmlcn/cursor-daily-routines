@@ -1,6 +1,6 @@
 import { useHostTheme } from "cursor/canvas";
 import type { Block } from "../../types";
-import { fmtT } from "../../helpers";
+import { fmtT, applyAlpha } from "../../helpers";
 
 interface Props {
   block: Block;
@@ -18,6 +18,10 @@ export function BlockChip({ block, blockIdx, leftPct, widthPct, isSelected, colo
                  - (parseInt(block.start.split(":")[0]) * 60 + parseInt(block.start.split(":")[1]));
   const isNarrow = durMins <= 15;
   const isLunch  = block.type === "lunch";
+  const bg = isSelected ? color : isLunch ? applyAlpha(color, 0.09) : applyAlpha(color, 0.165);
+  const borderColor = isSelected ? color : applyAlpha(color, 0.33);
+  const labelColor = isSelected ? color : applyAlpha(color, 0.67);
+
   return (
     <div
       onClick={() => onSelect(blockIdx)}
@@ -26,8 +30,8 @@ export function BlockChip({ block, blockIdx, leftPct, widthPct, isSelected, colo
         position: "absolute", left: leftPct, width: widthPct,
         top: isSelected ? 5 : 8, bottom: isSelected ? 5 : 8,
         borderRadius: 4,
-        background: isSelected ? color : isLunch ? `${color}18` : `${color}2A`,
-        border: `${isSelected ? 2 : 1.5}px ${isLunch ? "dashed" : "solid"} ${isSelected ? color : `${color}55`}`,
+        background: bg,
+        border: `${isSelected ? 2 : 1.5}px ${isLunch ? "dashed" : "solid"} ${borderColor}`,
         boxSizing: "border-box", overflow: "hidden", cursor: "pointer",
         display: "flex", flexDirection: "column", justifyContent: "center",
         padding: isNarrow ? "0 3px" : "0 7px", zIndex: isSelected ? 4 : 1,
@@ -35,7 +39,7 @@ export function BlockChip({ block, blockIdx, leftPct, widthPct, isSelected, colo
       }}
     >
       {!isNarrow && (
-        <span style={{ fontSize: 11, fontWeight: isSelected ? 700 : 600, color: isSelected ? color : `${color}AA`, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.3 }}>
+        <span style={{ fontSize: 11, fontWeight: isSelected ? 700 : 600, color: labelColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.3 }}>
           {block.label}
         </span>
       )}
