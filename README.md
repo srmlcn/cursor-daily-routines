@@ -258,6 +258,22 @@ If you need to customize your daily briefing for just one day, include those ins
 
 ---
 
+## Errors
+
+Sometimes, Cursor will make errors when generating the Canvas or linking it to the chat. Currently, it's unclear how to permanently fix this within this project, but resolving an error within the chat is generally simple.
+
+### Canvas Errors
+
+Copy the error to chat. Cursor will fix the issue. Close the Canvas window and reopen the file.
+
+### Missing Canvas Link
+
+Sometimes, the integrated Canvas buttons won't appear in the chat. Cursor has some unintuitive semantics around displaying Canvas functionality in a chat. One constraint is that the Canvas file needs to originate in the current workspace directory, i.e. creating the daily briefing in one workspace and trying to render the file in another workspace won't work. It's worth always starting the daily briefing in the `Home` workspace due to the project-agnostic nature of the plugin.
+
+To fix this, ensure that your `workspace_canvases_dir` path in `config.yml` matches the workspace in which you've started the daily briefing. Once they match, ask Cursor to relink the Canvas in chat. **Disclaimer: You might need to ask Cursor to relink the Canvas in chat multiple times or with contextual support in order to resolve the issue.**
+
+---
+
 ## Contributing
 
 Pull requests welcome. If you adapt the skill tables for a different tech stack, consider opening a PR to add your skill list as an example under `examples/`.
