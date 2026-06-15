@@ -78,6 +78,53 @@ function blockCatKey(type: Block["type"]): CatKey {
   return "gray";
 }
 
+function clamp(v: number, a = 0, b = 1) {
+  return Math.max(a, Math.min(b, v));
+}
+
+function toHex(n: number) {
+  const h = Math.round(clamp(n, 0, 255)).toString(16);
+  return h.length === 1 ? `0${h}` : h;
+}
+
+function alphaToHex(alpha: number) {
+  return toHex(Math.round(clamp(alpha, 0, 1) * 255));
+}
+
+function applyAlpha(color: string, alpha: number) {
+  if (!color) return color;
+  color = color.trim();
+  // #rrggbb
+  if (color.startsWith("#")) {
+    const hex = color.slice(1);
+    if (hex.length === 6) {
+      return `#${hex}${alphaToHex(alpha)}`;
+    }
+    // already has alpha or short form - return as-is for safety
+    if (hex.length === 8) return color;
+    if (hex.length === 3) {
+      // expand #rgb -> #rrggbb
+      const r = hex[0] + hex[0];
+      const g = hex[1] + hex[1];
+      const b = hex[2] + hex[2];
+      return `#${r}${g}${b}${alphaToHex(alpha)}`;
+    }
+    return color;
+  }
+
+  // rgb(...) -> rgba(...)
+  if (color.startsWith("rgb(")) {
+    return color.replace(/^rgb\((.*)\)$/, `rgba($1, ${clamp(alpha)})`);
+  }
+  if (color.startsWith("rgba(")) {
+    // replace existing alpha
+    return color.replace(/rgba\((\s*[\d\.]+,\s*[\d\.]+,\s*[\d\.]+),\s*[\d\.]+\s*\)/, `rgba($1, ${clamp(alpha)})`);
+  }
+
+  // as a last resort, return original color (some CSS variables or named colors)
+  return color;
+}
+
 interface Props {
   trackA: TrackedSkill[];
   trackB: TrackedSkill[];
@@ -599,6 +646,10 @@ function BlockChip({ block, blockIdx, leftPct, widthPct, isSelected, color, onSe
                  - (parseInt(block.start.split(":")[0]) * 60 + parseInt(block.start.split(":")[1]));
   const isNarrow = durMins <= 15;
   const isLunch  = block.type === "lunch";
+  const bg = isSelected ? color : isLunch ? applyAlpha(color, 0.09) : applyAlpha(color, 0.165);
+  const borderColor = isSelected ? color : applyAlpha(color, 0.33);
+  const labelColor = isSelected ? color : applyAlpha(color, 0.67);
+
   return (
     <div
       onClick={() => onSelect(blockIdx)}
@@ -607,8 +658,8 @@ function BlockChip({ block, blockIdx, leftPct, widthPct, isSelected, color, onSe
         position: "absolute", left: leftPct, width: widthPct,
         top: isSelected ? 5 : 8, bottom: isSelected ? 5 : 8,
         borderRadius: 4,
-        background: isSelected ? color : isLunch ? `${color}18` : `${color}2A`,
-        border: `${isSelected ? 2 : 1.5}px ${isLunch ? "dashed" : "solid"} ${isSelected ? color : `${color}55`}`,
+        background: bg,
+        border: `${isSelected ? 2 : 1.5}px ${isLunch ? "dashed" : "solid"} ${borderColor}`,
         boxSizing: "border-box", overflow: "hidden", cursor: "pointer",
         display: "flex", flexDirection: "column", justifyContent: "center",
         padding: isNarrow ? "0 3px" : "0 7px", zIndex: isSelected ? 4 : 1,
@@ -616,7 +667,7 @@ function BlockChip({ block, blockIdx, leftPct, widthPct, isSelected, color, onSe
       }}
     >
       {!isNarrow && (
-        <span style={{ fontSize: 11, fontWeight: isSelected ? 700 : 600, color: isSelected ? color : `${color}AA`, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.3 }}>
+        <span style={{ fontSize: 11, fontWeight: isSelected ? 700 : 600, color: labelColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.3 }}>
           {block.label}
         </span>
       )}
