@@ -10,6 +10,7 @@ on:
       - "skills/**/template.canvas.tsx"
       - "package.json"
       - "package-lock.json"
+  workflow_dispatch:
 
 jobs:
   build:
