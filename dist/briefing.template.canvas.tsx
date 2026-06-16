@@ -11,56 +11,10 @@ function sk(id: string, name: string, cat: string, ev: Evidence[] = []): Tracked
   return { id, name, cat, ev };
 }
 
-function skillStatus(skill: TrackedSkill): "mastered" | "in-progress" | "not-started" {
-  if (skill.ev.length >= 3) return "mastered";
-  if (skill.ev.length > 0)  return "in-progress";
-  return "not-started";
-}
-
-function skillStats(skills: TrackedSkill[]) {
-  const mastered   = skills.filter(s => s.ev.length >= 3).length;
-  const inProgress = skills.filter(s => s.ev.length > 0 && s.ev.length < 3).length;
-  return { mastered, inProgress, total: skills.length, pct: Math.round((mastered / skills.length) * 100) };
-}
-
-function skillNextFocus(skills: TrackedSkill[]): TrackedSkill | null {
-  const ip = skills
-    .filter(s => s.ev.length > 0 && s.ev.length < 3)
-    .sort((a, b) => b.ev.length - a.ev.length);
-  if (ip.length > 0) return ip[0];
-  return skills.find(s => s.ev.length === 0) ?? null;
-}
-
-function skillGroupBy(skills: TrackedSkill[]): [string, TrackedSkill[]][] {
-  const map = new Map<string, TrackedSkill[]>();
-  for (const s of skills) {
-    if (!map.has(s.cat)) map.set(s.cat, []);
-    map.get(s.cat)!.push(s);
-  }
-  return Array.from(map.entries());
-}
-
-function buildSkillIndex(...tracks: TrackedSkill[][]): Map<string, TrackedSkill> {
-  return new Map(tracks.flat().map(s => [s.id, s]));
-}
-
 function toMins(t: string): number {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
 }
-
-function fmtMins(absMins: number): string {
-  const h    = Math.floor(absMins / 60);
-  const m    = absMins % 60;
-  const ampm = h < 12 ? "am" : "pm";
-  const h12  = h > 12 ? h - 12 : h === 0 ? 12 : h;
-  return m === 0 ? `${h12}${ampm}` : `${h12}:${m.toString().padStart(2, "0")}`;
-}
-
-function fmtT(t: string): string {
-  return fmtMins(toMins(t));
-}
-
 function getCurrentBlockIdx(blocks: Block[], dayStart: number, dayEnd: number): number {
   const now     = new Date();
   const nowMins = now.getHours() * 60 + now.getMinutes();
@@ -68,96 +22,6 @@ function getCurrentBlockIdx(blocks: Block[], dayStart: number, dayEnd: number): 
     if (nowMins >= toMins(blocks[i].start) && nowMins < toMins(blocks[i].end)) return i;
   }
   return nowMins < dayStart ? 0 : blocks.length - 1;
-}
-
-function blockCatKey(type: Block["type"]): CatKey {
-  if (type === "ticket")  return "blue";
-  if (type === "skill-b") return "green";
-  if (type === "skill-a") return "orange";
-  if (type === "meeting") return "purple";
-  return "gray";
-}
-
-function clamp(v: number, a = 0, b = 1) {
-  return Math.max(a, Math.min(b, v));
-}
-
-function toHex(n: number) {
-  const h = Math.round(clamp(n, 0, 255)).toString(16);
-  return h.length === 1 ? `0${h}` : h;
-}
-
-function alphaToHex(alpha: number) {
-  return toHex(Math.round(clamp(alpha, 0, 1) * 255));
-}
-
-function applyAlpha(color: string, alpha: number) {
-  if (!color) return color;
-  color = color.trim();
-  // #rrggbb
-  if (color.startsWith("#")) {
-    const hex = color.slice(1);
-    if (hex.length === 6) {
-      return `#${hex}${alphaToHex(alpha)}`;
-    }
-    // already has alpha or short form - return as-is for safety
-    if (hex.length === 8) return color;
-    if (hex.length === 3) {
-      // expand #rgb -> #rrggbb
-      const r = hex[0] + hex[0];
-      const g = hex[1] + hex[1];
-      const b = hex[2] + hex[2];
-      return `#${r}${g}${b}${alphaToHex(alpha)}`;
-    }
-    return color;
-  }
-
-  // rgb(...) -> rgba(...)
-  if (color.startsWith("rgb(")) {
-    return color.replace(/^rgb\((.*)\)$/, `rgba($1, ${clamp(alpha)})`);
-  }
-  if (color.startsWith("rgba(")) {
-    // replace existing alpha
-    return color.replace(/rgba\((\s*[\d\.]+,\s*[\d\.]+,\s*[\d\.]+),\s*[\d\.]+\s*\)/, `rgba($1, ${clamp(alpha)})`);
-  }
-
-  // as a last resort, return original color (some CSS variables or named colors)
-  return color;
-}
-
-interface Props {
-  trackA: TrackedSkill[];
-  trackB: TrackedSkill[];
-}
-
-function CombinedUsageBar({ trackA, trackB }: Props) {
-  const theme  = useHostTheme();
-  const aStats = skillStats(trackA);
-  const bStats = skillStats(trackB);
-  const total  = trackA.length + trackB.length;
-  const masteredAll = aStats.mastered + bStats.mastered;
-  const overallPct  = Math.round((masteredAll / total) * 100);
-  return (
-    <UsageBar
-      total={total}
-      topLeftLabel={
-        <Text style={{ fontSize: 12, fontWeight: 600, color: theme.text.secondary }}>
-          Combined: {masteredAll} / {total} mastered
-        </Text>
-      }
-      topRightLabel={
-        <Text style={{ fontSize: 12, color: theme.text.tertiary }}>
-          {overallPct}% overall
-        </Text>
-      }
-      segments={[
-        ...(aStats.mastered   > 0 ? [{ id: "a-m",  value: aStats.mastered,   color: "orange" as const }] : []),
-        ...(aStats.inProgress > 0 ? [{ id: "a-ip", value: aStats.inProgress, color: "yellow" as const }] : []),
-        ...(bStats.mastered   > 0 ? [{ id: "b-m",  value: bStats.mastered,   color: "green"  as const }] : []),
-        ...(bStats.inProgress > 0 ? [{ id: "b-ip", value: bStats.inProgress, color: "yellow" as const }] : []),
-      ]}
-    />
-  );
 }
 
 interface Props {
@@ -254,6 +118,30 @@ function InboxSection({ threads }: Props) {
       </Stack>
     </Stack>
   );
+}
+
+function skillStats(skills: TrackedSkill[]) {
+  const mastered   = skills.filter(s => s.ev.length >= 3).length;
+  const inProgress = skills.filter(s => s.ev.length > 0 && s.ev.length < 3).length;
+  return { mastered, inProgress, total: skills.length, pct: Math.round((mastered / skills.length) * 100) };
+}
+function buildSkillIndex(...tracks: TrackedSkill[][]): Map<string, TrackedSkill> {
+  return new Map(tracks.flat().map(s => [s.id, s]));
+}
+
+function skillGroupBy(skills: TrackedSkill[]): [string, TrackedSkill[]][] {
+  const map = new Map<string, TrackedSkill[]>();
+  for (const s of skills) {
+    if (!map.has(s.cat)) map.set(s.cat, []);
+    map.get(s.cat)!.push(s);
+  }
+  return Array.from(map.entries());
+}
+
+function skillStatus(skill: TrackedSkill): "mastered" | "in-progress" | "not-started" {
+  if (skill.ev.length >= 3) return "mastered";
+  if (skill.ev.length > 0)  return "in-progress";
+  return "not-started";
 }
 
 interface Props {
@@ -387,6 +275,14 @@ function OverviewCard({ lang, skills, catKey, daysElapsed = 0, goalDays = 0, goa
   );
 }
 
+function skillNextFocus(skills: TrackedSkill[]): TrackedSkill | null {
+  const ip = skills
+    .filter(s => s.ev.length > 0 && s.ev.length < 3)
+    .sort((a, b) => b.ev.length - a.ev.length);
+  if (ip.length > 0) return ip[0];
+  return skills.find(s => s.ev.length === 0) ?? null;
+}
+
 interface Props {
   trackA: TrackedSkill[];
   trackB: TrackedSkill[];
@@ -468,6 +364,41 @@ function RecentUpdates({ updates, skillIndex, trackAName, trackBName, maxRows = 
 interface Props {
   trackA: TrackedSkill[];
   trackB: TrackedSkill[];
+}
+
+function CombinedUsageBar({ trackA, trackB }: Props) {
+  const theme  = useHostTheme();
+  const aStats = skillStats(trackA);
+  const bStats = skillStats(trackB);
+  const total  = trackA.length + trackB.length;
+  const masteredAll = aStats.mastered + bStats.mastered;
+  const overallPct  = Math.round((masteredAll / total) * 100);
+  return (
+    <UsageBar
+      total={total}
+      topLeftLabel={
+        <Text style={{ fontSize: 12, fontWeight: 600, color: theme.text.secondary }}>
+          Combined: {masteredAll} / {total} mastered
+        </Text>
+      }
+      topRightLabel={
+        <Text style={{ fontSize: 12, color: theme.text.tertiary }}>
+          {overallPct}% overall
+        </Text>
+      }
+      segments={[
+        ...(aStats.mastered   > 0 ? [{ id: "a-m",  value: aStats.mastered,   color: "orange" as const }] : []),
+        ...(aStats.inProgress > 0 ? [{ id: "a-ip", value: aStats.inProgress, color: "yellow" as const }] : []),
+        ...(bStats.mastered   > 0 ? [{ id: "b-m",  value: bStats.mastered,   color: "green"  as const }] : []),
+        ...(bStats.inProgress > 0 ? [{ id: "b-ip", value: bStats.inProgress, color: "yellow" as const }] : []),
+      ]}
+    />
+  );
+}
+
+interface Props {
+  trackA: TrackedSkill[];
+  trackB: TrackedSkill[];
   trackAName: string;
   trackBName: string;
   goalStart: string;
@@ -531,28 +462,20 @@ function SkillProgressionSection({
   );
 }
 
-interface Props {
-  personName: string;
-  trackAName: string;
-  trackBName: string;
-  goalDays: number;
-  goalStart: string;
-  goalEnd: string;
+function fmtMins(absMins: number): string {
+  const h    = Math.floor(absMins / 60);
+  const m    = absMins % 60;
+  const ampm = h < 12 ? "am" : "pm";
+  const h12  = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  return m === 0 ? `${h12}${ampm}` : `${h12}:${m.toString().padStart(2, "0")}`;
 }
 
-function SkillTrackerHeader({ personName, trackAName, trackBName, goalDays, goalStart, goalEnd }: Props) {
-  const theme = useHostTheme();
-  return (
-    <div>
-      <H1>Skill Progression</H1>
-      <Text style={{ color: theme.text.tertiary, marginTop: 4 }}>
-        {personName} · {trackAName} + {trackBName} · {goalDays}-day goal · {goalStart} → {goalEnd}
-      </Text>
-      <Text style={{ color: theme.text.quaternary, fontSize: 12, marginTop: 2 }}>
-        Skills mastered after 3 proofs (GitLab fixes or completed learning sessions). Updated via daily debrief.
-      </Text>
-    </div>
-  );
+function blockCatKey(type: Block["type"]): CatKey {
+  if (type === "ticket")  return "blue";
+  if (type === "skill-b") return "green";
+  if (type === "skill-a") return "orange";
+  if (type === "meeting") return "purple";
+  return "gray";
 }
 
 interface Props {
@@ -628,6 +551,54 @@ function LaneLabel({ label, color, height, borderTop, borderBottom, paddingRight
       </div>
     </div>
   );
+}
+
+function fmtT(t: string): string {
+  return fmtMins(toMins(t));
+}
+
+function clamp(v: number, a = 0, b = 1) {
+  return Math.max(a, Math.min(b, v));
+}
+function toHex(n: number) {
+  const h = Math.round(clamp(n, 0, 255)).toString(16);
+  return h.length === 1 ? `0${h}` : h;
+}
+function alphaToHex(alpha: number) {
+  return toHex(Math.round(clamp(alpha, 0, 1) * 255));
+}
+function applyAlpha(color: string, alpha: number) {
+  if (!color) return color;
+  color = color.trim();
+  // #rrggbb
+  if (color.startsWith("#")) {
+    const hex = color.slice(1);
+    if (hex.length === 6) {
+      return `#${hex}${alphaToHex(alpha)}`;
+    }
+    // already has alpha or short form - return as-is for safety
+    if (hex.length === 8) return color;
+    if (hex.length === 3) {
+      // expand #rgb -> #rrggbb
+      const r = hex[0] + hex[0];
+      const g = hex[1] + hex[1];
+      const b = hex[2] + hex[2];
+      return `#${r}${g}${b}${alphaToHex(alpha)}`;
+    }
+    return color;
+  }
+
+  // rgb(...) -> rgba(...)
+  if (color.startsWith("rgb(")) {
+    return color.replace(/^rgb\((.*)\)$/, `rgba($1, ${clamp(alpha)})`);
+  }
+  if (color.startsWith("rgba(")) {
+    // replace existing alpha
+    return color.replace(/rgba\((\s*[\d\.]+,\s*[\d\.]+,\s*[\d\.]+),\s*[\d\.]+\s*\)/, `rgba($1, ${clamp(alpha)})`);
+  }
+
+  // as a last resort, return original color (some CSS variables or named colors)
+  return color;
 }
 
 interface Props {
@@ -858,6 +829,29 @@ function BlockDurationPill({ durationMins, excluded = false }: Props) {
 }
 
 interface Props {
+  block: Block;
+  detail: BlockDetail;
+  color: string;
+}
+
+function BlockDescriptionHeader({ block, detail, color }: Props) {
+  const theme      = useHostTheme();
+  const durationMins = toMins(block.end) - toMins(block.start);
+  return (
+    <div style={{ padding: "12px 16px 10px", background: theme.bg.chrome, borderBottom: `1px solid ${theme.stroke.tertiary}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+        <BlockTagBadge tag={detail.tag} color={color} />
+        <BlockTimeMeta start={block.start} end={block.end} />
+        <BlockDurationPill durationMins={durationMins} excluded={block.type === "lunch"} />
+      </div>
+      <div style={{ fontSize: 15, fontWeight: 600, color: theme.text.primary, lineHeight: 1.4 }}>
+        {detail.heading}
+      </div>
+    </div>
+  );
+}
+
+interface Props {
   text: string;
   color: string;
 }
@@ -883,29 +877,6 @@ function BlockNote({ note }: Props) {
       <Text style={{ fontSize: 12, color: theme.text.tertiary, fontStyle: "italic", lineHeight: 1.5 }}>
         {note}
       </Text>
-    </div>
-  );
-}
-
-interface Props {
-  block: Block;
-  detail: BlockDetail;
-  color: string;
-}
-
-function BlockDescriptionHeader({ block, detail, color }: Props) {
-  const theme      = useHostTheme();
-  const durationMins = toMins(block.end) - toMins(block.start);
-  return (
-    <div style={{ padding: "12px 16px 10px", background: theme.bg.chrome, borderBottom: `1px solid ${theme.stroke.tertiary}` }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-        <BlockTagBadge tag={detail.tag} color={color} />
-        <BlockTimeMeta start={block.start} end={block.end} />
-        <BlockDurationPill durationMins={durationMins} excluded={block.type === "lunch"} />
-      </div>
-      <div style={{ fontSize: 15, fontWeight: 600, color: theme.text.primary, lineHeight: 1.4 }}>
-        {detail.heading}
-      </div>
     </div>
   );
 }
@@ -1101,31 +1072,6 @@ function TimelineSection({
   );
 }
 
-interface Props {
-  trackName: string;
-  skills: TrackedSkill[];
-  catKey: "orange" | "green";
-  defaultOpen?: boolean;
-  compact?: boolean;
-}
-
-function TrackSection({ trackName, skills, catKey, defaultOpen = true, compact = false }: Props) {
-  const theme  = useHostTheme();
-  const { mastered, inProgress, total } = skillStats(skills);
-  return (
-    <Stack gap={12}>
-      <Row gap={12} align="center">
-        <H2>{trackName}</H2>
-        <div style={{ width: 10, height: 10, borderRadius: "50%", background: theme.category[catKey] }} />
-        <Text style={{ color: theme.text.tertiary, fontSize: 13 }}>
-          {mastered} mastered · {inProgress} in progress · {total} total
-        </Text>
-      </Row>
-      <CategoryDetail skills={skills} defaultOpen={defaultOpen} compact={compact} />
-    </Stack>
-  );
-}
-
 // ══ FILL DAILY — start ═══════════════════════════════════════════════════════
 
 // ── Day config ────────────────────────────────────────────────────────────────
@@ -1298,20 +1244,11 @@ const LANE_DEFS: Array<{ id: string; label: string; catKey: CatKey; types: Block
   { id: "other",   label: "Other",      catKey: "gray",   types: ["break", "lunch", "meeting", "ramp"] },
 ];
 
-function getCurrentBlockIdx(): number {
-  const now     = new Date();
-  const nowMins = now.getHours() * 60 + now.getMinutes();
-  for (let i = 0; i < BLOCKS.length; i++) {
-    if (nowMins >= toMins(BLOCKS[i].start) && nowMins < toMins(BLOCKS[i].end)) return i;
-  }
-  return nowMins < DAY_START ? 0 : BLOCKS.length - 1;
-}
-
 export default function DayBriefing() {
   const [selIdx, setSelIdx] = useCanvasState<number | null>("selIdx", null);
   const [winKey, setWinKey] = useCanvasState<string>("winKey", "all");
 
-  const currentIdx  = getCurrentBlockIdx();
+  const currentIdx  = getCurrentBlockIdx(BLOCKS, DAY_START, DAY_END);
   const displayIdx  = selIdx ?? currentIdx;
 
   function handleSelect(idx: number) { setSelIdx(idx === selIdx ? null : idx); }
