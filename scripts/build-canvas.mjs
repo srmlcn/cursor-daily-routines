@@ -221,6 +221,17 @@ function inlineModule(filePath, canvasImports, neededSymbols, symbolRegistry) {
 
 // ── Template bundler ──────────────────────────────────────────────────────────
 
+function assertNoTemplateCollisions(templatePath, bodyLines, symbolRegistry) {
+  for (let i = 0; i < bodyLines.length; i++) {
+    const name = parseTopLevelBindingName(bodyLines[i]);
+    if (name && symbolRegistry.has(name)) {
+      throw new Error(
+        `Symbol collision in ${templatePath}:${i + 1}: "${name}" is already defined by an inlined module`,
+      );
+    }
+  }
+}
+
 function bundle(templatePath) {
   const src = readFileSync(templatePath, "utf8");
   const dir = dirname(templatePath);
@@ -229,6 +240,9 @@ function bundle(templatePath) {
   const canvasImports = new Set();
   const symbolRegistry = new Set();
   const bodyLines = [];
+  /** @type {string[]} */
+  const templateBodyLines = [];
+
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
@@ -240,9 +254,11 @@ function bundle(templatePath) {
 
     if (!parsed) {
       bodyLines.push(line);
+      templateBodyLines.push(line);
       if (consumed > 1) {
         for (let k = 1; k < consumed; k++) {
           bodyLines.push(lines[i - consumed + k]);
+          templateBodyLines.push(lines[i - consumed + k]);
         }
       }
       continue;
@@ -262,6 +278,8 @@ function bundle(templatePath) {
     const inner = inlineModule(resolved, canvasImports, needed, symbolRegistry);
     if (inner.length) bodyLines.push("", ...inner, "");
   }
+
+  assertNoTemplateCollisions(templatePath, templateBodyLines, symbolRegistry);
 
   const canonicalImport = `import { ${[...canvasImports].sort().join(", ")} } from "cursor/canvas";`;
 
@@ -298,4 +316,4 @@ if (isMain) {
   }
 }
 
-export { bundle };
+export { bundle, parseImportSpecifiers, parseTopLevelBindingName };
