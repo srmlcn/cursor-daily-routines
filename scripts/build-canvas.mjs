@@ -284,10 +284,18 @@ function bundle(templatePath) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-mkdirSync(resolve(ROOT, "dist"), { recursive: true });
+const isMain =
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-for (const { src, out } of ENTRIES) {
-  const result = bundle(resolve(ROOT, src));
-  writeFileSync(resolve(ROOT, out), result);
-  console.log(`✓ ${out}`);
+if (isMain) {
+  mkdirSync(resolve(ROOT, "dist"), { recursive: true });
+
+  for (const { src, out } of ENTRIES) {
+    const result = bundle(resolve(ROOT, src));
+    writeFileSync(resolve(ROOT, out), result);
+    console.log(`✓ ${out}`);
+  }
 }
+
+export { bundle };
