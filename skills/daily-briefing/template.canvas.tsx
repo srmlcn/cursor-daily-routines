@@ -7,7 +7,7 @@
 
 import { Divider, Text, useCanvasState } from "cursor/canvas";
 import type { EmailThread, Ticket, Block, BlockDetail, TrackedSkill, UpdateEntry, CatKey } from "../../src/types";
-import { sk, toMins } from "../../src/helpers";
+import { sk, toMins, getCurrentBlockIdx } from "../../src/helpers";
 import {
   DayHeader,
   InboxSection,
@@ -188,20 +188,11 @@ const LANE_DEFS: Array<{ id: string; label: string; catKey: CatKey; types: Block
   { id: "other",   label: "Other",      catKey: "gray",   types: ["break", "lunch", "meeting", "ramp"] },
 ];
 
-function getCurrentBlockIdx(): number {
-  const now     = new Date();
-  const nowMins = now.getHours() * 60 + now.getMinutes();
-  for (let i = 0; i < BLOCKS.length; i++) {
-    if (nowMins >= toMins(BLOCKS[i].start) && nowMins < toMins(BLOCKS[i].end)) return i;
-  }
-  return nowMins < DAY_START ? 0 : BLOCKS.length - 1;
-}
-
 export default function DayBriefing() {
   const [selIdx, setSelIdx] = useCanvasState<number | null>("selIdx", null);
   const [winKey, setWinKey] = useCanvasState<string>("winKey", "all");
 
-  const currentIdx  = getCurrentBlockIdx();
+  const currentIdx  = getCurrentBlockIdx(BLOCKS, DAY_START, DAY_END);
   const displayIdx  = selIdx ?? currentIdx;
 
   function handleSelect(idx: number) { setSelIdx(idx === selIdx ? null : idx); }
