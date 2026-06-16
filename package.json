@@ -4,7 +4,9 @@
   "description": "Cursor Plugin for daily briefing, debriefing, and skill-progress tracking.",
   "type": "module",
   "scripts": {
-    "build": "node scripts/build-canvas.mjs"
+    "build": "node scripts/build-canvas.mjs",
+    "validate": "node scripts/validate-dist.mjs",
+    "test": "node --test scripts/build-canvas.test.mjs"
   },
   "repository": {
     "type": "git",
