@@ -18,6 +18,14 @@
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { resolve, dirname, extname } from "path";
 import { fileURLToPath } from "url";
+import {
+  parseImportSpecifiers,
+  parseReExportLine,
+  isBarrelOnly,
+  findTopLevelDeclarations,
+  extractDeclarationLines,
+  parseTopLevelBindingName,
+} from "./build/lib.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -53,8 +61,6 @@ function resolveFile(importPath, fromDir) {
 
 // ── Import line parser ────────────────────────────────────────────────────────
 
-// Returns { kind, names, path } or null if the line isn't an import.
-//   kind: "canvas" | "relative-type" | "relative-value"
 function parseImport(line) {
   const m = line.match(/^import\s+(type\s+)?(\{[^}]+\}|\*\s+as\s+\w+|\w+)\s+from\s+["']([^"']+)["']/);
   if (!m) return null;
@@ -66,178 +72,248 @@ function parseImport(line) {
   return { kind: isType ? "relative-type" : "relative-value", path, raw: line };
 }
 
-// ── Module inliner ────────────────────────────────────────────────────────────
-
-const visited = new Set();
-
-/**
- * Recursively inline a module file.
- * Returns the lines of the file with:
- *  - `import type` lines dropped
- *  - relative value imports inlined recursively
- *  - cursor/canvas imports dropped (collected separately)
- *  - `export` keyword stripped from declarations
- *  - `export { ... }` / `export * from` / `export type` lines dropped
- */
-function inlineModule(filePath, canvasImports) {
-  if (visited.has(filePath)) return [];
-  visited.add(filePath);
-
-  const src = readFileSync(filePath, "utf8");
-  const dir = dirname(filePath);
-  const lines = src.split("\n");
-  const out = [];
-
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-
-    // Collect multi-line imports into one logical line
-    let logical = line;
-    if (/^import\s/.test(line) && !line.includes("from")) {
-      let j = i + 1;
-      while (j < lines.length && !lines[j - 1].includes("from")) {
-        logical += " " + lines[j].trim();
-        j++;
-      }
-      i = j;
-    } else {
+function collectLogicalImport(lines, startIdx) {
+  let logical = lines[startIdx];
+  let i = startIdx + 1;
+  if (/^import\s/.test(logical) && !logical.includes("from")) {
+    while (i < lines.length && !lines[i - 1].includes("from")) {
+      logical += " " + lines[i].trim();
       i++;
     }
+    return { logical: logical.trim(), nextIdx: i, rawLine: lines[startIdx] };
+  }
+  return { logical: logical.trim(), nextIdx: i, rawLine: logical };
+}
 
-    const parsed = parseImport(logical.trim());
+function collectCanvasNames(raw, canvasImports) {
+  for (const { local } of parseImportSpecifiers(raw)) {
+    if (local !== "*") canvasImports.add(local);
+  }
+}
 
-    if (!parsed) {
-      // Re-export: `export { X } from "./relative"` — inline the source module
-      const reExportMatch = logical.trim().match(/^export\s*(?:type\s*)?\{[^}]*\}\s*from\s*["']([^"']+)["']/);
-      if (reExportMatch) {
-        const rePath = reExportMatch[1];
-        if (rePath.startsWith(".")) {
-          const resolved = resolveFile(rePath, dir);
-          const inner = inlineModule(resolved, canvasImports);
-          if (inner.length) out.push("", ...inner, "");
-        }
-        continue;
+function stripExport(line) {
+  return line
+    .replace(/^export default /, "")
+    .replace(/^export (function|class|const|let|var|type|interface|enum)/, "$1");
+}
+
+// ── Module inliner ────────────────────────────────────────────────────────────
+
+function processImportLine(logical, dir, canvasImports, neededSymbols, symbolRegistry) {
+  const parsed = parseImport(logical);
+  if (!parsed) return null;
+
+  if (parsed.kind === "canvas") {
+    collectCanvasNames(parsed.raw, canvasImports);
+    return { kind: "canvas" };
+  }
+  if (parsed.kind === "relative-type") return { kind: "skip" };
+
+  const specifiers = parseImportSpecifiers(parsed.raw);
+  const childNeeded = new Set(specifiers.map((s) => s.local));
+  const resolved = resolveFile(parsed.path, dir);
+  const inner = inlineModule(resolved, canvasImports, childNeeded, symbolRegistry);
+  return { kind: "inline", lines: inner };
+}
+
+function inlineBarrel(src, dir, canvasImports, neededSymbols, symbolRegistry) {
+  const out = [];
+  for (const line of src.split("\n")) {
+    const re = parseReExportLine(line);
+    if (!re || !re.path.startsWith(".")) continue;
+
+    const targetSymbols = new Set();
+    for (const { exported, local } of re.names) {
+      if (neededSymbols.has(local) || neededSymbols.has(exported)) {
+        targetSymbols.add(exported);
       }
+    }
+    if (targetSymbols.size === 0) continue;
 
-      // Strip standalone `export` keyword from declarations, keep the rest
-      const stripped = logical
-        .replace(/^export default /, "")
-        .replace(/^export (function|class|const|let|var|type|interface|enum)/, "$1");
-      // Drop bare `export { ... }` and `export * from` lines
-      if (/^export\s*\{/.test(stripped) || /^export\s*\*/.test(stripped)) continue;
-      out.push(stripped);
+    const resolved = resolveFile(re.path, dir);
+    const inner = inlineModule(resolved, canvasImports, targetSymbols, symbolRegistry);
+    if (inner.length) out.push("", ...inner, "");
+  }
+  return out;
+}
+
+function inlineTsModuleClean(src, dir, canvasImports, neededSymbols, symbolRegistry) {
+  const pending = new Set([...neededSymbols].filter((n) => !symbolRegistry.has(n)));
+  if (pending.size === 0) return [];
+
+  const out = [];
+  const lines = src.split("\n");
+  let i = 0;
+
+  while (i < lines.length) {
+    const { logical, nextIdx } = collectLogicalImport(lines, i);
+    i = nextIdx;
+
+    const importResult = processImportLine(logical, dir, canvasImports, neededSymbols, symbolRegistry);
+    if (importResult?.kind === "inline" && importResult.lines.length) {
+      out.push("", ...importResult.lines, "");
       continue;
     }
+    if (importResult) continue;
+  }
 
-    if (parsed.kind === "canvas") {
-      // Extract names and add to the shared set
-      const match = parsed.raw.match(/\{([^}]+)\}/);
-      if (match) {
-        match[1].split(",").map((s) => s.trim()).filter(Boolean).forEach((name) => {
-          // Handle aliased imports like `useHostTheme as useHostTheme2`
-          const canonical = name.split(/\s+as\s+/)[0].trim();
-          canvasImports.add(canonical);
-        });
-      }
-      continue; // drop the import line
-    }
-
-    if (parsed.kind === "relative-type") continue; // drop type imports
-
-    // relative-value: inline the module
-    const resolved = resolveFile(parsed.path, dir);
-    const inner = inlineModule(resolved, canvasImports);
-    if (inner.length) out.push("", ...inner, "");
+  const declLines = extractDeclarationLines(src, pending, symbolRegistry);
+  if (declLines.length) {
+    if (out.length) out.push("");
+    out.push(...declLines);
   }
 
   return out;
 }
 
+function registerExportedSymbols(src, symbolRegistry) {
+  for (const decl of findTopLevelDeclarations(src)) {
+    if (decl.isExport) symbolRegistry.add(decl.name);
+  }
+}
+
+function inlineComponentModule(src, dir, canvasImports, neededSymbols, symbolRegistry) {
+  const decls = findTopLevelDeclarations(src);
+  const exportsNeeded = [...neededSymbols].filter((n) => {
+    const d = decls.find((d) => d.name === n && d.isExport);
+    return d && !symbolRegistry.has(n);
+  });
+  if (exportsNeeded.length === 0) return [];
+
+  const out = [];
+  const lines = src.split("\n");
+  let i = 0;
+
+  while (i < lines.length) {
+    const { logical, nextIdx, rawLine } = collectLogicalImport(lines, i);
+    i = nextIdx;
+
+    const importResult = processImportLine(logical, dir, canvasImports, neededSymbols, symbolRegistry);
+    if (importResult?.kind === "inline" && importResult.lines.length) {
+      out.push("", ...importResult.lines, "");
+      continue;
+    }
+    if (importResult) continue;
+
+    const stripped = stripExport(rawLine);
+    if (/^export\s*\{/.test(stripped) || /^export\s*\*/.test(stripped)) continue;
+    out.push(stripped);
+  }
+
+  registerExportedSymbols(src, symbolRegistry);
+  return out;
+}
+
+function inlineModule(filePath, canvasImports, neededSymbols, symbolRegistry) {
+  const src = readFileSync(filePath, "utf8");
+  const dir = dirname(filePath);
+
+  if (isBarrelOnly(src)) {
+    return inlineBarrel(src, dir, canvasImports, neededSymbols, symbolRegistry);
+  }
+
+  if (extname(filePath) === ".tsx") {
+    return inlineComponentModule(src, dir, canvasImports, neededSymbols, symbolRegistry);
+  }
+
+  return inlineTsModuleClean(src, dir, canvasImports, neededSymbols, symbolRegistry);
+}
+
 // ── Template bundler ──────────────────────────────────────────────────────────
 
+function assertNoTemplateCollisions(templatePath, bodyLines, symbolRegistry) {
+  for (let i = 0; i < bodyLines.length; i++) {
+    const name = parseTopLevelBindingName(bodyLines[i]);
+    if (name && symbolRegistry.has(name)) {
+      throw new Error(
+        `Symbol collision in ${templatePath}:${i + 1}: "${name}" is already defined by an inlined module`,
+      );
+    }
+  }
+}
+
 function bundle(templatePath) {
-  visited.clear();
   const src = readFileSync(templatePath, "utf8");
   const dir = dirname(templatePath);
   const lines = src.split("\n");
 
   const canvasImports = new Set();
+  const symbolRegistry = new Set();
   const bodyLines = [];
+  /** @type {string[]} */
+  const templateBodyLines = [];
 
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
+    const { logical, nextIdx } = collectLogicalImport(lines, i);
+    const consumed = nextIdx - i;
+    i = nextIdx;
 
-    // Collect multi-line imports into one logical line
-    let logical = line;
-    let consumed = 1;
-    if (/^import\s/.test(line) && !line.includes("from")) {
-      let j = i + 1;
-      while (j < lines.length && !lines[j - 1].includes("from")) {
-        logical += " " + lines[j].trim();
-        j++;
-      }
-      consumed = j - i;
-    }
-    i += consumed;
-
-    const parsed = parseImport(logical.trim());
+    const parsed = parseImport(logical);
 
     if (!parsed) {
       bodyLines.push(line);
-      // Re-add the continuation lines we consumed
+      templateBodyLines.push(line);
       if (consumed > 1) {
-        // Already folded into logical — body only needs the original lines
-        for (let k = 1; k < consumed; k++) bodyLines.push(lines[i - consumed + k]);
+        for (let k = 1; k < consumed; k++) {
+          bodyLines.push(lines[i - consumed + k]);
+          templateBodyLines.push(lines[i - consumed + k]);
+        }
       }
       continue;
     }
 
     if (parsed.kind === "canvas") {
-      const match = parsed.raw.match(/\{([^}]+)\}/);
-      if (match) {
-        match[1].split(",").map((s) => s.trim()).filter(Boolean).forEach((name) => {
-          const canonical = name.split(/\s+as\s+/)[0].trim();
-          canvasImports.add(canonical);
-        });
-      }
-      // Replace this import line with a placeholder we'll fill later
+      collectCanvasNames(parsed.raw, canvasImports);
       bodyLines.push("__CANVAS_IMPORT__");
       continue;
     }
 
-    if (parsed.kind === "relative-type") continue; // drop
+    if (parsed.kind === "relative-type") continue;
 
-    // relative-value: inline at this position
+    const specifiers = parseImportSpecifiers(parsed.raw);
+    const needed = new Set(specifiers.map((s) => s.local));
     const resolved = resolveFile(parsed.path, dir);
-    const inner = inlineModule(resolved, canvasImports);
+    const inner = inlineModule(resolved, canvasImports, needed, symbolRegistry);
     if (inner.length) bodyLines.push("", ...inner, "");
   }
 
-  // Build the single deduplicated cursor/canvas import
+  assertNoTemplateCollisions(templatePath, templateBodyLines, symbolRegistry);
+
   const canonicalImport = `import { ${[...canvasImports].sort().join(", ")} } from "cursor/canvas";`;
 
-  // Replace the first __CANVAS_IMPORT__ placeholder with the real import,
-  // remove any subsequent ones
   let first = true;
-  const finalLines = bodyLines.map((l) => {
-    if (l === "__CANVAS_IMPORT__") {
-      if (first) { first = false; return canonicalImport; }
-      return null;
-    }
-    return l;
-  }).filter((l) => l !== null);
+  const finalLines = bodyLines
+    .map((l) => {
+      if (l === "__CANVAS_IMPORT__") {
+        if (first) {
+          first = false;
+          return canonicalImport;
+        }
+        return null;
+      }
+      return l;
+    })
+    .filter((l) => l !== null);
 
   return finalLines.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-mkdirSync(resolve(ROOT, "dist"), { recursive: true });
+const isMain =
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-for (const { src, out } of ENTRIES) {
-  const result = bundle(resolve(ROOT, src));
-  writeFileSync(resolve(ROOT, out), result);
-  console.log(`✓ ${out}`);
+if (isMain) {
+  mkdirSync(resolve(ROOT, "dist"), { recursive: true });
+
+  for (const { src, out } of ENTRIES) {
+    const result = bundle(resolve(ROOT, src));
+    writeFileSync(resolve(ROOT, out), result);
+    console.log(`✓ ${out}`);
+  }
 }
+
+export { bundle, parseImportSpecifiers, parseTopLevelBindingName };

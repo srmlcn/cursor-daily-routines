@@ -3,7 +3,13 @@ name: Build canvas templates
 on:
   push:
     branches: [main]
-    paths: ["src/**"]
+    paths:
+      - "src/**"
+      - "scripts/**"
+      - "canvases/**"
+      - "skills/**/template.canvas.tsx"
+      - "package.json"
+      - "package-lock.json"
 
 jobs:
   build:
